@@ -1,0 +1,43 @@
+name: WC2026 engine
+
+# Reliable replacement for GitHub's flaky scheduler. This job loops internally
+# (engine.py) and re-launches itself at the end, so it runs continuously from a
+# single manual start. The schedule entries are INSURANCE ONLY — if the self-relaunch
+# chain ever breaks, one of these eventually restarts it.
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "17 */3 * * *"   # a few times a day, as a restart safety net
+
+concurrency:
+  group: wc2026-engine
+  cancel-in-progress: false
+
+jobs:
+  engine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Run engine loop
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          GIST_ID: ${{ secrets.GIST_ID }}
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+        run: python engine.py
+
+      - name: Re-launch next cycle
+        if: always()
+        env:
+          GH_PAT: ${{ secrets.ENGINE_PAT }}
+        run: |
+          curl -s -X POST \
+            -H "Authorization: Bearer $GH_PAT" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/karansingh-gif/FIFA4U/actions/workflows/engine.yml/dispatches \
+            -d '{"ref":"main"}'
