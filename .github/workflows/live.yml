@@ -1,0 +1,32 @@
+name: WC2026 live goals
+
+# Runs during match hours (UTC). Each run watches ESPN every ~60s for up to ~9 min
+# while a match is live, then exits; the next run (10 min later, serialized by the
+# concurrency group) continues. Free only because the repo is public — unlimited
+# Actions minutes. No Anthropic key needed: ESPN's scoreboard is keyless.
+on:
+  schedule:
+    - cron: "*/10 16-23 * * *"
+    - cron: "*/10 0-4 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: wc2026-live
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Watch for goals
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          GIST_ID: ${{ secrets.GIST_ID }}
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+        run: python live.py

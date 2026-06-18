@@ -1,0 +1,31 @@
+name: WC2026 briefing poll
+
+# UTC cron, best-effort. Poll every 15 min only during match hours (~12pm-11pm ET)
+# and send when a match is 10-40 min from kickoff, so a slipped run still catches it.
+on:
+  schedule:
+    - cron: "*/15 16-23 * * *"
+    - cron: "*/15 0-4 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: wc2026-poll
+  cancel-in-progress: false
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Run briefing poller
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          GIST_ID: ${{ secrets.GIST_ID }}
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+        run: python run.py

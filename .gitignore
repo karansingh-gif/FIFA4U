@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+# Subscriber/state data must never live in the public repo — it's in the private Gist.
+# Local copies under state/ are for development only.
+state/
