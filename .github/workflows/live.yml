@@ -6,8 +6,9 @@ name: WC2026 live goals
 # Actions minutes. No Anthropic key needed: ESPN's scoreboard is keyless.
 on:
   schedule:
-    - cron: "*/10 16-23 * * *"
-    - cron: "*/10 0-4 * * *"
+    # Match hours: 11am-midnight ET = 15:00-04:00 UTC.
+    - cron: "*/10 15-23 * * *"
+    - cron: "*/10 0-3 * * *"
   workflow_dispatch: {}
 
 concurrency:
