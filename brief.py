@@ -54,29 +54,41 @@ def get_today_fixtures(today_str: str) -> list[dict]:
 
 
 def generate_briefing(home: str, away: str, kickoff_local: str) -> str:
-    """Produce the Telegram-ready briefing text for one match."""
-    return _run(
+    """Produce the Telegram-ready briefing text for one match.
+
+    The final message is delimited with <MSG></MSG> so any tool-use narration the
+    model writes along the way is stripped out and never reaches subscribers.
+    """
+    raw = _run(
         f"Create a FIFA World Cup 2026 pre-match briefing for {home} vs {away} "
-        f"(kickoff {kickoff_local} ET). The tournament is in progress; use live web "
-        "data only, never prior knowledge.\n\n"
+        f"(kickoff {kickoff_local} ET). The tournament is in progress; use the "
+        "web_search / web_fetch tools for live data, never prior knowledge.\n\n"
         "Gather:\n"
-        "1. Each team's FIFA ranking ONLY from the official per-country FIFA page "
-        "https://inside.fifa.com/fifa-world-ranking/<FIFA_CODE>?gender=men (3-letter "
-        "codes, e.g. MEX, KOR, BRA; web-search the code if unsure). web_fetch that page "
-        'and read the "Current rank" value. Never use news/power-ranking sites for the '
-        'ranking. If it cannot be read, write "ranking unavailable".\n'
-        "2. Top 2-3 players to watch on each team.\n"
+        "1. Each team's FIFA ranking. Get it from the official FIFA site only. Use "
+        "web_fetch DIRECTLY on https://inside.fifa.com/fifa-world-ranking/<FIFA_CODE>?gender=men "
+        "(these URLs are pre-approved — fetch them without searching first; 3-letter "
+        "codes e.g. UZB, COL, MEX, KOR) and read the \"Current rank\" value. If that "
+        "page yields no number, web_search '<team> current FIFA world ranking inside.fifa.com'. "
+        "Never use news or power-ranking sites. If truly unavailable, write \"ranking unavailable\".\n"
+        "2. Top 2-3 players to watch on each team (web_search).\n"
         "3. Which players on each team have ALREADY SCORED in this 2026 World Cup so far "
-        "(and how many). If it's a team's first match, say so.\n"
-        "4. Head-to-head history (all-time record + notable past World Cup meetings).\n\n"
-        "Then output ONLY the final Telegram message (plain text + emojis, NO markdown "
-        "characters), under 3500 chars, with these lines:\n"
+        "(and how many) — web_search. If it's a team's first match, say so.\n"
+        "4. Head-to-head history (all-time record + notable past World Cup meetings) — web_search.\n\n"
+        "When finished, output the final Telegram message and NOTHING ELSE, wrapped "
+        "EXACTLY between <MSG> and </MSG> markers. Plain text + emojis, no markdown "
+        "characters, under 3500 chars, these lines:\n"
+        "<MSG>\n"
         f"⏰ Today {kickoff_local} ET: {home} vs {away}\n"
         "\U0001f4ca FIFA Ranking: <home> #X · <away> #Y\n"
         "⭐ Watch out for: ...\n"
         "⚽ Scored so far this World Cup: ...\n"
         "\U0001f91d Head-to-head: ...\n"
-        "\U0001f525 Why it's worth watching: <1-3 sentences>\n\n"
-        "Output the message text only — no preamble, no explanation.",
+        "\U0001f525 Why it's worth watching: <1-3 sentences>\n"
+        "</MSG>",
         max_tokens=4000,
     )
+    m = re.search(r"<MSG>(.*?)</MSG>", raw, re.S)
+    if m:
+        return m.group(1).strip()
+    i = raw.find("⏰")  # fallback: from the first ⏰ onward
+    return raw[i:].strip() if i >= 0 else raw.strip()

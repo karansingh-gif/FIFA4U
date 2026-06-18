@@ -13,9 +13,10 @@ import tg
 import brief
 
 ET = ZoneInfo("America/Toronto")
-# Send when kickoff is this many minutes away — wide enough that a delayed or
-# skipped Actions run still catches the match on the next poll.
-LO_MIN, HI_MIN = 10, 40
+# Send when kickoff is this many minutes away. Window is deliberately wide (most
+# of the hour before kickoff) so GitHub's best-effort cron — which can run late or
+# skip — still catches the match; dedup via sent.json prevents repeats.
+LO_MIN, HI_MIN = 2, 45
 SEASON_START = "2026-06-11"
 SEASON_END = "2026-07-19"
 
