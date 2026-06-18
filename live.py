@@ -29,24 +29,34 @@ def _fetch(date_str: str) -> dict:
 
 
 def _goals(ev: dict) -> list[tuple[str, str]]:
-    """Return [(signature, message)] for every goal in an event."""
+    """Return [(signature, message)] for every goal in an event, in order.
+
+    The running score is counted goal-by-goal (not read from the final tally), so
+    each alert shows the score as it stood the moment that goal went in.
+    """
     comp = ev["competitions"][0]
     by_id = {c["team"]["id"]: c for c in comp["competitors"]}
     home = next(c for c in comp["competitors"] if c["homeAway"] == "home")
     away = next(c for c in comp["competitors"] if c["homeAway"] == "away")
+    hname, aname = home["team"]["displayName"], away["team"]["displayName"]
+    home_id, away_id = home["team"]["id"], away["team"]["id"]
+    hs = as_ = 0
     out: list[tuple[str, str]] = []
     for d in comp.get("details", []):
         if not d.get("scoringPlay"):
             continue
-        tid = str(d.get("team", {}).get("id"))
+        tid = d.get("team", {}).get("id")
+        if tid == home_id:      # own goals are already attributed to the benefiting team
+            hs += 1
+        elif tid == away_id:
+            as_ += 1
         clock = d.get("clock", {}).get("displayValue", "")
         scorer = (d.get("athletesInvolved") or [{}])[0].get("displayName", "Unknown")
         tag = " (pen)" if d.get("penaltyKick") else (" (OG)" if d.get("ownGoal") else "")
-        team = by_id.get(d.get("team", {}).get("id"), {}).get("team", {}).get("displayName", "")
+        team = by_id.get(tid, {}).get("team", {}).get("displayName", "")
         sig = f'{ev["id"]}|{clock}|{scorer}|{tid}'
         msg = (f"⚽ GOAL{tag} — {scorer} {clock} ({team})\n"
-               f'{home["team"]["displayName"]} {home.get("score", "?")}-'
-               f'{away.get("score", "?")} {away["team"]["displayName"]}')
+               f"{hname} {hs}-{as_} {aname}")
         out.append((sig, msg))
     return out
 
