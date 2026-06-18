@@ -1,12 +1,12 @@
 name: WC2026 briefing poll
 
-# UTC cron, best-effort. Poll every 15 min during match hours (11am-midnight ET =
-# 15:00-04:00 UTC) and send when a match is within ~45 min of kickoff, so a slipped
+# UTC cron, best-effort. Poll every 15 min during match hours (11am-12:59am ET =
+# 15:00-04:59 UTC) and send when a match is within ~45 min of kickoff, so a slipped
 # run still catches it.
 on:
   schedule:
     - cron: "*/15 15-23 * * *"
-    - cron: "*/15 0-3 * * *"
+    - cron: "*/15 0-4 * * *"
   workflow_dispatch: {}
 
 concurrency:
